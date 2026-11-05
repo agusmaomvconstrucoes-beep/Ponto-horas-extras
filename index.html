@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ponto de horas extras</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEEA; --card:#FFFFFF; --ink:#1B2833; --muted:#5B6B76; --line:#C9D3CD;
+  --stamp:#A8322A; --stamp-soft:#F6E3E1; --ok:#2F6B4F; --ok-soft:#DDEDE4; --field:#F7F9F8;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141B20; --card:#1C252C; --ink:#E6ECE8; --muted:#94A3AC; --line:#33414A;
+    --stamp:#E0675C; --stamp-soft:#3A2220; --ok:#7CC6A0; --ok-soft:#1E3329; --field:#222D35;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141B20; --card:#1C252C; --ink:#E6ECE8; --muted:#94A3AC; --line:#33414A;
+  --stamp:#E0675C; --stamp-soft:#3A2220; --ok:#7CC6A0; --ok-soft:#1E3329; --field:#222D35;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.5;font-variant-numeric:tabular-nums}
+.wrap{max-width:860px;margin:0 auto;padding:1.5rem 1rem 3rem}
+h1{font-stretch:75%;font-weight:800;font-size:clamp(1.6rem,4vw,2.1rem);line-height:1.1;margin:0 0 .25rem;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 1.5rem;max-width:62ch}
+h2{font-size:1.15rem;font-weight:700;margin:0 0 .75rem}
+
+/* relógio */
+.clock{background:var(--card);border:2px solid var(--ink);border-radius:6px;padding:1.25rem;display:grid;gap:1rem;position:relative}
+.clock-top{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap}
+.now{font-stretch:75%;font-weight:800;font-size:clamp(3rem,13vw,5.5rem);line-height:.95;letter-spacing:-.02em}
+.today{color:var(--muted);font-size:.95rem}
+.status{display:inline-block;padding:.2rem .6rem;border:1.5px solid currentColor;border-radius:3px;font-weight:700;font-size:.85rem;transform:rotate(-2deg)}
+.status.on{color:var(--stamp);background:var(--stamp-soft)}
+.status.off{color:var(--muted)}
+.elapsed{font-size:1.05rem}
+.elapsed b{font-size:1.4rem;font-stretch:75%}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media (max-width:560px){.row{grid-template-columns:1fr}}
+label{display:block;font-size:.85rem;color:var(--muted);margin-bottom:.25rem;font-weight:500}
+input,textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1.5px solid var(--line);border-radius:4px;padding:.55rem .65rem}
+input:focus,textarea:focus,button:focus-visible,summary:focus-visible{outline:3px solid var(--stamp);outline-offset:2px}
+button{font:inherit;font-weight:700;cursor:pointer;border-radius:4px;border:2px solid var(--ink);background:var(--card);color:var(--ink);padding:.6rem 1rem}
+button.big{font-size:1.15rem;padding:.9rem 1.2rem;width:100%;background:var(--ink);color:var(--card)}
+button.big.stop{background:var(--stamp);border-color:var(--stamp);color:#fff}
+button.small{padding:.3rem .6rem;font-size:.85rem;border-width:1.5px}
+button:disabled{opacity:.5;cursor:not-allowed}
+
+/* resumo */
+.summary{margin-top:2rem;display:flex;gap:1rem;align-items:end;flex-wrap:wrap;justify-content:space-between}
+.month-pick{width:auto}
+.totals{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin:1rem 0;border:1.5px solid var(--line);border-radius:4px;background:var(--card)}
+.totals div{padding:.8rem 1rem;border-right:1.5px solid var(--line)}
+.totals div:last-child{border-right:0}
+.totals span{display:block;color:var(--muted);font-size:.8rem}
+.totals strong{font-size:1.35rem;font-stretch:75%}
+@media (max-width:600px){.totals{grid-template-columns:1fr}.totals div{border-right:0;border-bottom:1.5px solid var(--line)}.totals div:last-child{border-bottom:0}}
+
+.table-wrap{overflow-x:auto;background:var(--card);border:1.5px solid var(--line);border-radius:4px}
+table{width:100%;border-collapse:collapse;font-size:.92rem;min-width:640px}
+th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--muted);font-size:.8rem}
+tr:last-child td{border-bottom:0}
+.tag{font-size:.75rem;padding:.05rem .4rem;border-radius:3px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.okk{border-color:var(--ok);color:var(--ok);background:var(--ok-soft)}
+.empty{padding:1.5rem;color:var(--muted);text-align:center}
+.actions{display:flex;gap:.4rem;flex-wrap:wrap}
+
+details{margin-top:1.25rem;background:var(--card);border:1.5px solid var(--line);border-radius:4px}
+summary{cursor:pointer;padding:.8rem 1rem;font-weight:700}
+.dbody{padding:0 1rem 1rem;display:grid;gap:.75rem}
+.note{font-size:.85rem;color:var(--muted)}
+.banner{border-left:4px solid var(--stamp);background:var(--stamp-soft);padding:.6rem .8rem;border-radius:3px;font-size:.9rem;margin-bottom:1rem}
+.toolbar{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+textarea.report{min-height:220px;font-size:.88rem}
+.msg{font-size:.85rem;color:var(--ok);min-height:1.2em}
+.hidden{display:none !important}
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Ponto de horas extras</h1>
+  <p class="sub">Registre o início e o fim de cada hora extra. Cada registro guarda o horário em que foi feito, e no fim do mês você gera um resumo para o gestor. Jornada do contrato: <span id="jornadaTxt">07:00 às 14:00</span>. Só o tempo fora dela conta como extra. Os dados ficam salvos neste navegador.</p>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <section class="clock" aria-label="Relógio de ponto">
+    <div class="clock-top">
+      <div>
+        <div class="now" id="now">--:--</div>
+        <div class="today" id="today"></div>
+      </div>
+      <span class="status off" id="status">Fora de hora extra</span>
+    </div>
+    <div class="elapsed hidden" id="elapsedBox">Em andamento desde <span id="startedAt"></span> · <b id="elapsed">0h 00min</b></div>
+    <button class="big" id="punch" disabled>Carregando…</button>
+  </section>
+
+  <section class="summary">
+    <div>
+      <h2 style="margin:0">Registros do mês</h2>
+    </div>
+    <div>
+      <label for="mes">Mês</label>
+      <input type="month" id="mes" class="month-pick">
+    </div>
+  </section>
+
+  <div class="totals">
+    <div><span>Total de horas extras</span><strong id="tHoras">0h 00min</strong></div>
+    <div><span>Registros</span><strong id="tQtd">0</strong></div>
+    <div><span>Valor estimado</span><strong id="tValor">–</strong></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Data</th><th>Início</th><th>Fim</th><th>Hora extra</th><th>Origem</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <div class="toolbar">
+    <button id="btnResumo">Gerar resumo para o gestor</button>
+    <button id="btnCsv">Baixar planilha (CSV)</button>
+  </div>
+  <div id="resumoBox" class="hidden" style="margin-top:1rem">
+    <label for="resumo">Copie e envie por e-mail ao gestor </label>
+    <textarea id="resumo" class="report" readonly></textarea>
+    <div class="toolbar"><button id="btnCopy" class="small">Copiar texto</button><span class="msg" id="copyMsg"></span></div>
+  </div>
+
+  <details id="manualBox">
+    <summary>Lançar hora extra esquecida</summary>
+    <div class="dbody">
+      <p class="note">Use só quando esqueceu de bater o ponto. Esses registros ficam marcados como “manual”, para ficar claro que não foram feitos na hora.</p>
+      <div><label for="mData">Data</label><input type="date" id="mData" style="max-width:260px"></div>
+      <div class="row">
+        <div><label for="mIni">Início</label><input type="time" id="mIni"></div>
+        <div><label for="mFim">Fim</label><input type="time" id="mFim"></div>
+      </div>
+      <div><button id="btnManual">Salvar lançamento</button> <span class="msg" id="manualMsg"></span></div>
+    </div>
+  </details>
+
+  <details open>
+    <summary>Backup dos registros</summary>
+    <div class="dbody">
+      <p class="note">Os registros ficam guardados só neste navegador. Se limpar o histórico, trocar de celular ou usar outro aparelho, eles não aparecem. Baixe um backup toda semana e guarde o arquivo; para levar a outro aparelho, use “Restaurar backup” nele.</p>
+      <div class="actions"><button id="btnBackup">Salvar backup</button><button id="btnRestore">Restaurar backup</button>
+      <input type="file" id="fileRestore" accept=".json,application/json" class="hidden"></div>
+      <span class="msg" id="backupMsg"></span>
+    </div>
+  </details>
+
+  <details>
+    <summary>Meus dados</summary>
+    <div class="dbody">
+      <div class="row">
+        <div><label for="cNome">Seu nome</label><input id="cNome"></div>
+        <div><label for="cGestor">Gestor</label><input id="cGestor"></div>
+      </div>
+      <div class="row">
+        <div><label for="cEmpresa">Empresa</label><input id="cEmpresa"></div>
+        <div><label for="cValor">Valor da hora extra (R$, opcional)</label><input id="cValor" inputmode="decimal" placeholder="Ex.: 15,00"></div>
+      </div>
+      <div class="row">
+        <div><label for="cJIni">Início da jornada do contrato</label><input type="time" id="cJIni" value="07:00"></div>
+        <div><label for="cJFim">Fim da jornada do contrato</label><input type="time" id="cJFim" value="14:00"></div>
+      </div>
+      <p class="note">De segunda a sexta, só conta como hora extra o tempo fora desse horário. Sábado e domingo contam inteiros.</p>
+      <div><button id="btnSettings">Salvar dados</button> <span class="msg" id="settingsMsg"></span></div>
+    </div>
+  </details>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const state = { entries:[], settings:{}, running:null, ready:false, mode:'local', canWrite:true };
+  const cloud = null;
+  let busy = false;
+
+  // ---------- util ----------
+  const pad = n => String(n).padStart(2,'0');
+  const fmtHM = d => pad(d.getHours())+':'+pad(d.getMinutes());
+  const fmtDate = d => pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();
+  const fmtDur = min => { min=Math.max(0,Math.round(min)); return Math.floor(min/60)+'h '+pad(min%60)+'min'; };
+  const monthKey = d => d.getFullYear()+'-'+pad(d.getMonth()+1);
+  const newId = () => Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+  const parseValor = v => { if(!v) return null; const n = parseFloat(String(v).replace(/\./g,'').replace(',','.')); return isFinite(n)&&n>0?n:null; };
+  const brl = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+  const dias = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+  const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  // ---------- jornada contratual ----------
+  function jornada(){
+    const s=state.settings||{};
+    const toMin = (v,d) => { const m=/^(\d{1,2}):(\d{2})$/.exec(v||''); return m ? (+m[1])*60+(+m[2]) : d; };
+    return { ini: toMin(s.jIni, 7*60), fim: toMin(s.jFim, 14*60), txtIni: s.jIni||'07:00', txtFim: s.jFim||'14:00' };
+  }
+  // minutos FORA da jornada (seg a sex). Sábado e domingo contam inteiros.
+  function extraMin(ini, fim){
+    const j=jornada(); let total=0;
+    let dia=new Date(ini.getFullYear(), ini.getMonth(), ini.getDate());
+    while(dia<fim){
+      const prox=new Date(dia.getFullYear(), dia.getMonth(), dia.getDate()+1);
+      const a=Math.max(ini, dia), b=Math.min(fim, prox);
+      if(b>a){
+        const dow=dia.getDay();
+        if(dow===0||dow===6){ total+=(b-a)/60000; }
+        else {
+          const jI=dia.getTime()+j.ini*60000, jF=dia.getTime()+j.fim*60000;
+          const dentro=Math.max(0, Math.min(b,jF)-Math.max(a,jI));
+          total+=((b-a)-dentro)/60000;
+        }
+      }
+      dia=prox;
+    }
+    return Math.round(total);
+  }
+  function emJornada(d){
+    const j=jornada(), dow=d.getDay(), m=d.getHours()*60+d.getMinutes();
+    return dow!==0 && dow!==6 && m>=j.ini && m<j.fim;
+  }
+
+  function flash(el, txt){ el.textContent = txt; setTimeout(()=>{ if(el.textContent===txt) el.textContent=''; }, 3500); }
+  function banner(txt){ const b=$('banner'); if(!txt){b.classList.add('hidden');return;} b.textContent=txt; b.classList.remove('hidden'); }
+
+  // ---------- armazenamento ----------
+  const LKEY = 'ponto-he-v1';
+  function localLoad(){
+    try{ const raw = localStorage.getItem(LKEY); if(raw){ const o=JSON.parse(raw); state.entries=o.entries||[]; state.settings=o.settings||{}; state.running=o.running||null; } }catch(e){}
+  }
+  function localSave(){
+    try{ localStorage.setItem(LKEY, JSON.stringify({entries:state.entries, settings:state.settings, running:state.running})); }catch(e){}
+  }
+  async function saveEntry(e){
+    if(cloud){ await cloud.entriesCol.doc(e.id).set(e); }
+    else { state.entries = state.entries.filter(x=>x.id!==e.id).concat([e]); localSave(); render(); }
+  }
+  async function patchEntry(id, patch){
+    if(cloud){ await cloud.entriesCol.doc(id).update(patch); }
+    else { const e=state.entries.find(x=>x.id===id); if(e) Object.assign(e,patch); localSave(); render(); }
+  }
+  async function removeEntry(id){
+    if(cloud){ await cloud.entriesCol.doc(id).delete(); }
+    else { state.entries = state.entries.filter(x=>x.id!==id); localSave(); render(); }
+  }
+  async function saveSettings(s){
+    if(cloud){ await cloud.settingsRef.set(s); }
+    else { state.settings=s; localSave(); render(); }
+  }
+  async function saveRunning(r){
+    if(cloud){ await cloud.runningRef.set(r ? Object.assign({ativo:true},r) : {ativo:false}); }
+    else { state.running=r; localSave(); render(); }
+  }
+
+  // ---------- render ----------
+  function selectedMonth(){ return $('mes').value || monthKey(new Date()); }
+  function monthEntries(){
+    const m = selectedMonth();
+    return state.entries.filter(e => monthKey(new Date(e.inicio))===m).sort((a,b)=>a.inicio<b.inicio?-1:1);
+  }
+  function render(){
+    // relógio / botão
+    const r = state.running;
+    const btn = $('punch');
+    btn.disabled = !state.ready || busy || !state.canWrite;
+    if(!state.ready){ btn.textContent='Carregando…'; }
+    else if(r){ btn.textContent='Encerrar hora extra'; btn.classList.add('stop'); }
+    else { btn.textContent = emJornada(new Date()) ? 'Iniciar hora extra (conta a partir das '+jornada().txtFim+')' : 'Iniciar hora extra'; btn.classList.remove('stop'); }
+    $('status').textContent = r ? 'Em hora extra' : 'Fora de hora extra';
+    $('status').className = 'status ' + (r?'on':'off');
+    $('elapsedBox').classList.toggle('hidden', !r);
+    if(r){
+      const d=new Date(r.inicio);
+      $('startedAt').textContent = fmtHM(d) + (fmtDate(d)!==fmtDate(new Date()) ? ' de '+fmtDate(d) : '');
+    }
+    tick();
+
+    // settings nos campos (sem sobrescrever o que está sendo digitado)
+    const s = state.settings;
+    [['cNome','nome'],['cGestor','gestor'],['cEmpresa','empresa'],['cValor','valor'],['cJIni','jIni'],['cJFim','jFim']].forEach(([id,k])=>{
+      if(document.activeElement!==$(id) && !$(id).dataset.dirty) $(id).value = s[k]||({jIni:'07:00',jFim:'14:00'})[k]||'';
+    });
+    $('jornadaTxt').textContent = jornada().txtIni+' às '+jornada().txtFim;
+
+    // tabela
+    const list = monthEntries();
+    const tb = $('rows');
+    tb.textContent='';
+    if(!list.length){
+      const tr=document.createElement('tr'); const td=document.createElement('td');
+      td.colSpan=6; td.className='empty'; td.textContent = state.ready ? 'Nenhuma hora extra registrada neste mês.' : 'Carregando registros…';
+      tr.appendChild(td); tb.appendChild(tr);
+    }
+    let total=0;
+    list.forEach(e=>{
+      const ini=new Date(e.inicio), fim=new Date(e.fim);
+      total += e.minutos;
+      const tr=document.createElement('tr');
+      const cell = (txt) => { const td=document.createElement('td'); td.textContent=txt; tr.appendChild(td); return td; };
+      cell(fmtDate(ini));
+      cell(fmtHM(ini));
+      cell(fmtHM(fim) + (fmtDate(fim)!==fmtDate(ini)?' (+1 dia)':''));
+      const tdD=cell(fmtDur(e.minutos));
+      if(e.minutosPeriodo && e.minutosPeriodo-e.minutos>=1){ const n=document.createElement('div'); n.className='note'; n.textContent='de '+fmtDur(e.minutosPeriodo)+' no período; jornada descontada'; tdD.appendChild(n); }
+      const tdO = document.createElement('td'); tr.appendChild(tdO);
+      const tag=document.createElement('span'); tag.className='tag'; tag.textContent = e.origem==='manual'?'manual':'ponto';
+      tag.title = 'Registrado em '+fmtDate(new Date(e.registradoEm))+' às '+fmtHM(new Date(e.registradoEm));
+      tdO.appendChild(tag);
+      const tdX=document.createElement('td'); tr.appendChild(tdX);
+      const box=document.createElement('div'); box.className='actions'; tdX.appendChild(box);
+      const bd=document.createElement('button'); bd.className='small'; bd.textContent='Excluir'; bd.disabled=!state.canWrite;
+      bd.onclick = () => {
+        if(bd.dataset.armed){ run(()=>removeEntry(e.id)); return; }
+        bd.dataset.armed='1'; bd.textContent='Confirmar exclusão';
+        setTimeout(()=>{ delete bd.dataset.armed; bd.textContent='Excluir'; }, 3500);
+      };
+      box.appendChild(bd);
+      tb.appendChild(tr);
+    });
+    $('tHoras').textContent = fmtDur(total);
+    $('tQtd').textContent = list.length;
+    const v = parseValor(s.valor);
+    $('tValor').textContent = v ? brl(v*total/60) : '–';
+    
+  }
+
+  function tick(){
+    const now=new Date();
+    $('now').textContent = fmtHM(now);
+    $('today').textContent = dias[now.getDay()]+', '+now.getDate()+' de '+meses[now.getMonth()]+' de '+now.getFullYear();
+    if(state.running){
+      const ex=extraMin(new Date(state.running.inicio), now);
+      $('elapsed').textContent = emJornada(now) ? 'ainda no horário normal; conta a partir das '+jornada().txtFim : fmtDur(ex)+' de hora extra';
+    } else if(state.ready && !busy){
+      const b=$('punch'); const t=emJornada(now)?'Iniciar hora extra (conta a partir das '+jornada().txtFim+')':'Iniciar hora extra';
+      if(b.textContent!==t && !b.classList.contains('stop')) b.textContent=t;
+    }
+  }
+  setInterval(tick, 1000);
+
+  async function run(fn){
+    if(busy) return;
+    busy=true; render();
+    try{ await fn(); }
+    catch(err){
+      banner('Não foi possível salvar agora. Confira a conexão e tente de novo.');
+    }
+    finally{ busy=false; render(); }
+  }
+
+  // ---------- ações ----------
+  $('punch').onclick = () => run(async ()=>{
+    if(!state.running){
+      await saveRunning({ inicio:new Date().toISOString() });
+    } else {
+      const ini=new Date(state.running.inicio), fim=new Date();
+      const minutos = extraMin(ini, fim);
+      const e = { id:newId(), inicio:ini.toISOString(), fim:fim.toISOString(), minutos, minutosPeriodo:Math.round((fim-ini)/60000), jornada:jornada().txtIni+'–'+jornada().txtFim,
+        origem:'ponto', registradoEm:fim.toISOString() };
+      if(minutos>=1) await saveEntry(e);
+      await saveRunning(null);
+      if(minutos<1) banner('Registro descartado: o período ficou todo dentro da jornada ('+jornada().txtIni+' às '+jornada().txtFim+').'); else banner('');
+    }
+  });
+
+  $('btnManual').onclick = () => {
+    const d=$('mData').value, hi=$('mIni').value, hf=$('mFim').value;
+    if(!d||!hi||!hf){ flash($('manualMsg'),'Preencha data, início e fim.'); return; }
+    const ini=new Date(d+'T'+hi+':00'); let fim=new Date(d+'T'+hf+':00');
+    if(fim<=ini) fim=new Date(fim.getTime()+86400000);
+    if(ini>new Date()){ flash($('manualMsg'),'A data não pode estar no futuro.'); return; }
+    const mx=extraMin(ini,fim);
+    if(mx<1){ flash($('manualMsg'),'Esse horário está todo dentro da jornada ('+jornada().txtIni+' às '+jornada().txtFim+').'); return; }
+    const e={ id:newId(), inicio:ini.toISOString(), fim:fim.toISOString(), minutos:mx, minutosPeriodo:Math.round((fim-ini)/60000), jornada:jornada().txtIni+'–'+jornada().txtFim,
+      origem:'manual', registradoEm:new Date().toISOString() };
+    run(async()=>{ await saveEntry(e); ['mIni','mFim'].forEach(id=>$(id).value=''); flash($('manualMsg'),'Lançamento salvo.'); });
+  };
+
+  ['cNome','cGestor','cEmpresa','cValor','cJIni','cJFim'].forEach(id=>$(id).addEventListener('input',()=>{$(id).dataset.dirty='1';}));
+  $('btnSettings').onclick = () => run(async()=>{
+    await saveSettings({ nome:$('cNome').value.trim(), gestor:$('cGestor').value.trim(), empresa:$('cEmpresa').value.trim(), valor:$('cValor').value.trim(), jIni:$('cJIni').value||'07:00', jFim:$('cJFim').value||'14:00' });
+    ['cNome','cGestor','cEmpresa','cValor','cJIni','cJFim'].forEach(id=>delete $(id).dataset.dirty);
+    flash($('settingsMsg'),'Dados salvos.');
+  });
+
+  $('mes').addEventListener('change', ()=>{ render(); $('resumoBox').classList.add('hidden'); });
+
+  function monthLabel(){ const [y,m]=selectedMonth().split('-'); return meses[+m-1]+' de '+y; }
+  $('btnResumo').onclick = () => {
+    const list=monthEntries(), s=state.settings;
+    const total=list.reduce((a,e)=>a+e.minutos,0);
+    const v=parseValor(s.valor);
+    let t = 'Assunto: Horas extras – '+monthLabel()+(s.nome?' – '+s.nome:'')+'\n\n';
+    t += 'Olá'+(s.gestor?', '+s.gestor:'')+',\n\n';
+    t += 'Segue o registro das horas extras que fiz em '+monthLabel()+', conforme combinamos. Minha jornada do contrato é das '+jornada().txtIni+' às '+jornada().txtFim+', e contei só o tempo fora desse horário.\n\n';
+    if(!list.length) t += '(Nenhum registro neste mês.)\n';
+    list.forEach(e=>{
+      const ini=new Date(e.inicio), fim=new Date(e.fim);
+      t += fmtDate(ini)+' | '+fmtHM(ini)+' às '+fmtHM(fim)+' | '+fmtDur(e.minutos)+' de hora extra'+(e.origem==='manual'?' | lançado depois':'')+'\n';
+    });
+    t += '\nTotal: '+fmtDur(total)+' ('+(total/60).toFixed(2).replace('.',',')+' h)';
+    if(v) t += '\nValor estimado: '+brl(v*total/60)+' ('+brl(v)+' por hora)';
+    t += '\n\nObrigado'+(s.nome?',\n'+s.nome:'!');
+    $('resumo').value=t; $('resumoBox').classList.remove('hidden');
+  };
+  $('btnCopy').onclick = async () => {
+    const ta=$('resumo');
+    try{ await navigator.clipboard.writeText(ta.value); flash($('copyMsg'),'Texto copiado.'); }
+    catch(e){ ta.focus(); ta.select(); flash($('copyMsg'),'Texto selecionado: use Ctrl+C (ou Copiar no celular).'); }
+  };
+  $('btnCsv').onclick = async () => {
+    const list=monthEntries();
+    const q = x => '"'+String(x==null?'':x).replace(/"/g,'""')+'"';
+    let csv='\ufeffData;Início;Fim;Duração (h);Origem;Registrado em\n';
+    list.forEach(e=>{
+      const ini=new Date(e.inicio), fim=new Date(e.fim), rg=new Date(e.registradoEm);
+      csv += [fmtDate(ini),fmtHM(ini),fmtHM(fim),(e.minutos/60).toFixed(2).replace('.',','),e.origem,fmtDate(rg)+' '+fmtHM(rg)].join(';')+'\n';
+    });
+    baixar('horas-extras-'+selectedMonth()+'.csv', csv, 'text/csv;charset=utf-8');
+  };
+  function baixar(nome, conteudo, tipo){
+    const url=URL.createObjectURL(new Blob([conteudo],{type:tipo}));
+    const a=document.createElement('a'); a.href=url; a.download=nome; document.body.appendChild(a); a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1000);
+  }
+  $('btnBackup').onclick = () => {
+    const hoje=new Date(); const nome='backup-horas-extras-'+hoje.getFullYear()+'-'+pad(hoje.getMonth()+1)+'-'+pad(hoje.getDate())+'.json';
+    baixar(nome, JSON.stringify({versao:1, exportadoEm:hoje.toISOString(), entries:state.entries, settings:state.settings, running:state.running}, null, 2), 'application/json');
+    flash($('backupMsg'),'Backup baixado. Guarde o arquivo.');
+  };
+  $('btnRestore').onclick = () => $('fileRestore').click();
+  $('fileRestore').onchange = async (ev) => {
+    const f=ev.target.files[0]; if(!f) return;
+    try{
+      const o=JSON.parse(await f.text());
+      if(!Array.isArray(o.entries)) throw new Error('formato');
+      const ids=new Set(state.entries.map(e=>e.id)); let novos=0;
+      o.entries.forEach(e=>{ if(e && e.id && e.inicio && e.fim && !ids.has(e.id)){ state.entries.push(e); novos++; } });
+      if(o.settings && !Object.keys(state.settings||{}).length) state.settings=o.settings;
+      localSave(); render();
+      flash($('backupMsg'), novos ? novos+' registro(s) restaurado(s).' : 'Nenhum registro novo nesse backup.');
+    }catch(e){ flash($('backupMsg'),'Esse arquivo não é um backup válido.'); }
+    ev.target.value='';
+  };
+
+  // ---------- inicialização ----------
+  $('mes').value = monthKey(new Date());
+  $('mData').value = new Date().toISOString().slice(0,10);
+  tick(); render();
+
+  localLoad(); state.ready=true; render();
+
+})();
+</script>
+</body>
+</html>
